@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgis/postgis:17-3.5   # PostGIS 포함 이미지
+    container_name: coredb_postgis
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    command: [
+      "postgres",
+      "-c", "log_destination=csvlog",
+      "-c", "logging_collector=on",
+      "-c", "log_statement=all",
+      "-c", "log_directory=/var/log/postgresql",
+      "-c", "log_filename=postgresql-%Y-%m-%d_%H%M%S.csv",
+      "-c", "shared_preload_libraries=pg_stat_statements",
+      "-c", "pg_stat_statements.track=all",
+      "-c", "max_connections=200"
+    ]
+    ports:
+      - "34432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - pg_logs:/var/log/postgresql
+      # 초기화 스크립트: 최초 생성 시 PostGIS 익스텐션 자동 설치
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    networks:
+      - gr_network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: grdb_pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_ROOT}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PW}
+    ports:
+      - "15050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - gr_network
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - pg_logs:/var/log/postgresql
+      # 선택 사항: pgAdmin에 서버 자동 등록
+      # - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+
+networks:
+  gr_network:
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  pg_logs:
