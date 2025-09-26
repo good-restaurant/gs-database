@@ -4,9 +4,9 @@
   uses: action-pack/gitlab-sync@v3.03
   with:
     # GitLab repo URL
-    url: 
+    url: ${{ secret.GITLAB_REPOSITORY }}
     # GitLab username
-    username: 
+    username: ${{ secret.GITLAB_USERNAME }}
     # GitLab token
-    token: 
+    token: ${{ secret.MIRRORING_PAT }}
           
