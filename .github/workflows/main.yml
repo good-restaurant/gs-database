@@ -21,7 +21,7 @@ jobs:
           token: ${{ secrets.MIRRORING_PAT }}      # GitLab Personal Access Token
           
           run: |
-            git remote add gitlab https://${gitlab_username}:${gitlab_token}@${gitlab_url#https://};
+            git remote add gitlab https://${{ secrets.GITLAB_USERNAME }}:${{ secrets.MIRRORING_PAT }}@${{ secrets.GITLAB_REPOSITORY }};
             git push -f --all gitlab;
             git push -f --tags gitlab;
             
