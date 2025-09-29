@@ -10,15 +10,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
+      
+      - name: Map tokenized URL for this host
+        run: |
+          git config --local url."https://${{ secrets.GITLAB_USERNAME }}:${{ secrets.MIRRORING_PAT }}@lab.i4624.info/".insteadOf "https://lab.i4624.info/"
+      
+      - name: Add remote & push
+        run: |
+          git remote remove target 2>/dev/null || true
+          git remote add target https://lab.i4624.info/good-restaurant/gs-database.git
+          git ls-remote target 1>/dev/null
+          if [[ "$GITHUB_REF" == refs/heads/* ]]; then
+            BR="${GITHUB_REF#refs/heads/}"
+            git push target "$BR:$BR" --force-with-lease
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            TG="${GITHUB_REF#refs/tags/}"
+            git push target "refs/tags/$TG:refs/tags/$TG" --force-with-lease
+          fi
 
-      - name: Mirror to GitLab
-        uses: action-pack/gitlab-sync@38077a591a7f2ceb6ff6026e6beb2954a3be0f93
-        with:
-          url: https://project_39_bot_cd35185de932e222f6c84be37e91436b:glpat-YAad4Hya_Jxbs5kFxM8q@lab.i4624.info/good-restaurant/gs-database.git
-          # username: project_39_bot
-          # token: glpat-YAad4Hya_Jxbs5kFxM8q
-          # url: ${{ secrets.GITLAB_REPOSITORY }}   # 예: https://gitlab.com/group/project.git
-          # username: ${{ secrets.GITLAB_USERNAME }} # GitLab 사용자명 (보통 email 대신 username)
-          # token: ${{ secrets.MIRRORING_PAT }}      # GitLab Personal Access Token
