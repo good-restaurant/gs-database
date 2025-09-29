@@ -15,10 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-
-      - name: Map tokenized URL for this host
+        
+      - name: Inject Basic auth for lab.i4624.info
         run: |
-          git config --local url."https://${{ secrets.GITLAB_USERNAME }}:${{ secrets.MIRRORING_PAT }}@lab.i4624.info/".insteadOf "https://lab.i4624.info/"
+          AUTH="$(printf '%s:%s' '${{ secrets.GITLAB_USERNAME }}' '${{ secrets.MIRRORING_PAT }}' | base64 -w0 2>/dev/null || base64 -b0)"
+          git config --global http.https://lab.i4624.info/.extraheader "Authorization: Basic $AUTH"
 
       - name: Add remote & sanity check
         run: |
