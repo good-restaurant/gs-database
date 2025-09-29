@@ -19,3 +19,9 @@ jobs:
           url: ${{ secrets.GITLAB_REPOSITORY }}   # 예: https://gitlab.com/group/project.git
           username: ${{ secrets.GITLAB_USERNAME }} # GitLab 사용자명 (보통 email 대신 username)
           token: ${{ secrets.MIRRORING_PAT }}      # GitLab Personal Access Token
+          
+          run: |
+            git remote add gitlab https://${gitlab_username}:${gitlab_token}@${gitlab_url#https://};
+            git push -f --all gitlab;
+            git push -f --tags gitlab;
+            
