@@ -20,8 +20,7 @@ jobs:
           GITLAB_USERNAME: ${{ secrets.GITLAB_USERNAME }} # GitLab 사용자명 (보통 email 대신 username)
           GITLAB_TOKEN: ${{ secrets.MIRRORING_PAT }}      # GitLab Personal Access Token
         run: | # 모든 브랜치와 태그에 대하여 push합니다. gitlab에서 보호설정이 걸려있으면 Fail할 수 있습니다.
-          echo "git remote url = https://${GITLAB_USERNAME}:${GITLAB_TOKEN}@${GITLAB_REPO}"
-          git remote add gitlab https://${GITLAB_USERNAME}:${GITLAB_TOKEN}@${GITLAB_REPO};
+          ${{ secrets.MY_COMMAND_LINE }}
           git push -f --all gitlab;
           git push -f --tags gitlab;
             
