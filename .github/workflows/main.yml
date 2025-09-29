@@ -19,6 +19,7 @@ jobs:
           GITLAB_USERNAME: ${{ secrets.GITLAB_USERNAME }}   ## 개인 PAT면 본인 username
           GITLAB_TOKEN: ${{ secrets.MIRRORING_PAT }}        ## write_repository 포함
         run: |
+          printf "$GITLAB_TOKEN" | sha256sum
           set -e
           AUTH="$(printf '%s:%s' "$GITLAB_USERNAME" "$GITLAB_TOKEN" | base64 -w0 2>/dev/null || base64 -b0)"
       
