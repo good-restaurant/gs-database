@@ -1,0 +1,65 @@
+stages: [build, test, deploy]
+
+# DinD 설정
+image: docker:24
+services:
+  - name: docker:24-dind
+    command: ["--tls=false"]
+
+variables:
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_DRIVER: overlay2
+  DOCKER_COMPOSE_FILE: docker-compose.yml
+
+# 필수 변수 점검 및 정리
+compose-check:
+  stage: build
+  script:
+    - echo "CI/CD 변수 확인"
+    - |
+      if [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_PASSWORD" ] || [ -z "$POSTGRES_DB" ] \
+         || [ -z "$PGADMIN_ROOT" ] || [ -z "$PGADMIN_PW" ]; then
+        echo "필수 변수 누락: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, PGADMIN_ROOT, PGADMIN_PW"
+        exit 1
+      fi
+    - echo "잔여 컨테이너 정리"
+    - docker compose down -v || true
+
+test:
+  stage: test
+  script:
+    - docker compose up -d
+    # DB 기동 대기
+    - |
+      for i in $(seq 1 60); do
+        if docker exec coredb_postgis pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
+          echo "PostGIS up"; break
+        fi; sleep 2
+      done
+    # PostGIS 확장 체크
+    - docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis \
+      psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select postgis_full_version();"
+    # pgAdmin 웹 확인
+    - curl -sSf http://localhost:5050 >/dev/null
+    # 선택: 간단한 공간 쿼리 테스트
+    - >
+      docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc
+      "select ST_AsText(ST_Transform(ST_GeomFromText('POINT(126.9784 37.5665)',4326),3857));"
+  artifacts:
+    when: always
+    reports: {}
+    expire_in: 1 week
+  after_script:
+    - docker compose logs postgres | tail -n 200 || true
+    - docker compose logs pgadmin | tail -n 200 || true
+    - docker compose down
+
+deploy:
+  stage: deploy
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - docker compose pull
+    - docker compose up -d
+    - docker compose ps

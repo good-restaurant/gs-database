@@ -1,0 +1,21 @@
+name: GitLab Sync
+
+on:
+  push:
+    branches: ['**']
+    tags: ['**']
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Mirror to GitLab
+        uses: action-pack/gitlab-sync@38077a591a7f2ceb6ff6026e6beb2954a3be0f93
+        with:
+          url: ${{ secrets.GITLAB_REPOSITORY }}   # 예: https://gitlab.com/group/project.git
+          username: ${{ secrets.GITLAB_USERNAME }} # GitLab 사용자명 (보통 email 대신 username)
+          token: ${{ secrets.MIRRORING_PAT }}      # GitLab Personal Access Token
