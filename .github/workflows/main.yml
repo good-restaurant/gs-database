@@ -15,12 +15,13 @@ jobs:
 
       - name: Mirror to GitLab
         env:
-          GITLAB_HOST_PATH: lab.i4624.info/good-restaurant/gs-database.git  ## 중요: https 제거, 슬래시 꼬리 제거
+          GITLAB_REPO: https://lab.i4624.info/good-restaurant/gs-database.git  ## .git, no trailing slash
           GITLAB_USERNAME: ${{ secrets.GITLAB_USERNAME }}
           GITLAB_TOKEN: ${{ secrets.MIRRORING_PAT }}
         run: |
-          set -e
-          echo "remote = https://${GITLAB_USERNAME}:***@${GITLAB_HOST_PATH}"
-          git remote add gitlab "https://${GITLAB_USERNAME}:${GITLAB_TOKEN}@${GITLAB_HOST_PATH}"
-          git push --all gitlab
-          git push --tags gitlab
+          # 한국어 주석  Git remote에 인증정보를 URL로 직접 삽입하지 않고, 헤더로 전달
+          AUTH="$(printf '%s:%s' "$GITLAB_USERNAME" "$GITLAB_TOKEN" | base64 -w0 2>/dev/null || base64 -b0)"
+          git remote add gitlab "$GITLAB_REPO"
+          git -c http.extraheader="Authorization: Basic $AUTH" push --all gitlab
+          git -c http.extraheader="Authorization: Basic $AUTH" push --tags gitlab
+
