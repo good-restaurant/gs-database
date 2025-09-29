@@ -4,28 +4,47 @@ on:
   push:
     branches: ['**']
     tags: ['**']
+  # 삭제 이벤트까지 미러링하려면 아래 주석 해제
+  # delete: {}
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    env:
+      GIT_TERMINAL_PROMPT: 0
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      
+
       - name: Map tokenized URL for this host
         run: |
           git config --local url."https://${{ secrets.GITLAB_USERNAME }}:${{ secrets.MIRRORING_PAT }}@lab.i4624.info/".insteadOf "https://lab.i4624.info/"
-      
-      - name: Add remote & push
+
+      - name: Add remote & sanity check
         run: |
           git remote remove target 2>/dev/null || true
           git remote add target https://lab.i4624.info/good-restaurant/gs-database.git
-          git ls-remote target 1>/dev/null
-          if [[ "$GITHUB_REF" == refs/heads/* ]]; then
-            BR="${GITHUB_REF#refs/heads/}"
-            git push target "$BR:$BR" --force-with-lease
-          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            TG="${GITHUB_REF#refs/tags/}"
-            git push target "refs/tags/$TG:refs/tags/$TG" --force-with-lease
-          fi
+          git ls-remote --heads target 1>/dev/null
 
+      - name: Push branch
+        if: startsWith(github.ref, 'refs/heads/')
+        run: |
+          BR="${GITHUB_REF#refs/heads/}"
+          git push target "$BR:$BR" --force-with-lease
+
+      - name: Push tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TG="${GITHUB_REF#refs/tags/}"
+          # 태그는 덮어쓸 일이 잦으면 --force 권장
+          git push target "refs/tags/$TG:refs/tags/$TG" --force
+
+      # 삭제 미러링(선택)
+      # - name: Mirror deletes
+      #   if: ${{ github.event_name == 'delete' }}
+      #   run: |
+      #     if [[ "${{ github.event.ref_type }}" == "branch" ]]; then
+      #       git push target ":${{ github.event.ref }}"
+      #     elif [[ "${{ github.event.ref_type }}" == "tag" ]]; then
+      #       git push target ":refs/tags/${{ github.event.ref }}"
+      #     fi
