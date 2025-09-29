@@ -19,7 +19,15 @@ jobs:
           GITLAB_USERNAME: ${{ secrets.GITLAB_USERNAME }}
           GITLAB_TOKEN: ${{ secrets.MIRRORING_PAT }}
         run: |
-          # 한국어 주석  https는 여기서만 한 번 붙임
+          #  https는 여기서만 한 번 붙임
+          ## 토큰 유효성 확인
+          curl -fsS -H "PRIVATE-TOKEN: $GITLAB_TOKEN" https://lab.i4624.info/api/v4/user
+          
+          ## 프로젝트 접근권한 확인  group/project URL 인코딩 필요
+          curl -fsS -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+            "https://lab.i4624.info/api/v4/projects/good-restaurant%2Fgs-database" | jq '.permissions'
+
+          
           git remote add gitlab "https://${GITLAB_USERNAME}:${GITLAB_TOKEN}@${GITLAB_HOSTPATH}"
           git push --all gitlab
           git push --tags gitlab
