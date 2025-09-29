@@ -16,9 +16,9 @@ jobs:
       - name: Mirror to GitLab
         uses: action-pack/gitlab-sync@38077a591a7f2ceb6ff6026e6beb2954a3be0f93
         with:
-          url: https://lab.i4624.info/good-restaurant/gs-database.git
-          username: project_39_bot
-          token: glpat-YAad4Hya_Jxbs5kFxM8q
+          url: https://project_39_bot_cd35185de932e222f6c84be37e91436b:glpat-YAad4Hya_Jxbs5kFxM8q@lab.i4624.info/good-restaurant/gs-database.git
+          # username: project_39_bot
+          # token: glpat-YAad4Hya_Jxbs5kFxM8q
           # url: ${{ secrets.GITLAB_REPOSITORY }}   # 예: https://gitlab.com/group/project.git
           # username: ${{ secrets.GITLAB_USERNAME }} # GitLab 사용자명 (보통 email 대신 username)
           # token: ${{ secrets.MIRRORING_PAT }}      # GitLab Personal Access Token
