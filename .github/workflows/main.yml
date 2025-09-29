@@ -20,16 +20,9 @@ jobs:
         run: |
           AUTH="$(printf '%s:%s' '${{ secrets.GITLAB_USERNAME }}' '${{ secrets.MIRRORING_PAT }}' | base64 -w0 2>/dev/null || base64 -b0)"
           git config --global http.https://lab.i4624.info/.extraheader "Authorization: Basic $AUTH"
-
-      - name: Add remote & sanity check
-        run: |
           git remote remove target 2>/dev/null || true
           git remote add target https://lab.i4624.info/good-restaurant/gs-database.git
           git ls-remote --heads target 1>/dev/null
-
-      - name: Push branch
-        if: startsWith(github.ref, 'refs/heads/')
-        run: |
           BR="${GITHUB_REF#refs/heads/}"
           git push target "$BR:$BR" --force-with-lease
 
