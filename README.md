@@ -27,3 +27,9 @@ Gitlab Variable 에서 아래 4개에 대한 Variable을 등록해주세요.
 - POSTGRES_DB 
 - PGADMIN_ROOT (PGAdmin의 SuperUser 계정)
 - PGADMIN_PW
+
+## github action
+
+https://github.com/marketplace/actions/bypass-cloudflare-for-github-action
+
+이걸로 cloudflare cdn 환경에서 작동하는 gitlab에도 push mirroring 할 수 있습니다.
