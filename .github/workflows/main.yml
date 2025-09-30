@@ -28,34 +28,36 @@ jobs:
           GITHUB_REF_TYPE: ${{ github.ref_type }}      # branch | tag
           GITHUB_REF_NAME: ${{ github.ref_name }}      # 브랜치명 또는 태그명
         run: |
-          set -euo pipefail
+            set -euo pipefail
 
-          printf '%s' "$GITLAB_TOKEN" | sha256sum
-          
-          BASE_URL="https://lab.i4624.info/"
-          AUTH="$(printf '%s:%s' "$GITLAB_USERNAME" "$GITLAB_TOKEN" | base64 | tr -d '\n')"
-          
-          GIT_ARGS=()
-          GIT_ARGS+=(-c "http.${BASE_URL}.extraheader=Authorization: Basic ${AUTH}")
-          
-          # 연결 확인
-          git "${GIT_ARGS[@]}" ls-remote "$GITLAB_REPO" >/dev/null
-          
-          # remote 재설정
-          git remote remove gitlab 2>/dev/null || true
-          git remote add gitlab "$GITLAB_REPO"
-          
-          # ✅ gitlab 원격의 현재 상태를 먼저 받아와서 lease 기준 업데이트
-          git fetch gitlab --prune
-          
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            TAG="${GITHUB_REF_NAME}"
-            # 태그의 경우도 원격 최신 상태를 받아온 뒤 lease로 강제 반영
-            git "${GIT_ARGS[@]}" push gitlab "refs/tags/${TAG}:refs/tags/${TAG}" -o ci.skip --force-with-lease
-          else
-            BR="${GITHUB_REF_NAME}"
-            # 브랜치만 동기화
-            git "${GIT_ARGS[@]}" push gitlab "${BR}:${BR}" -o ci.skip --force-with-lease
-            # 필요 시 태그 동기화
-            git "${GIT_ARGS[@]}" push gitlab --tags -o ci.skip --force-with-lease
-          fi
+
+            printf '%s' "$GITLAB_TOKEN" | sha256sum
+            
+            BASE_URL="https://lab.i4624.info/"
+            AUTH="$(printf '%s:%s' "$GITLAB_USERNAME" "$GITLAB_TOKEN" | base64 | tr -d '\n')"
+            
+            GIT_ARGS=()
+            GIT_ARGS+=(-c "http.${BASE_URL}.extraheader=Authorization: Basic ${AUTH}")
+            
+            # 연결 확인
+            git "${GIT_ARGS[@]}" ls-remote "$GITLAB_REPO" >/dev/null
+
+            ## global header
+            git config --local --add "http.${GITLAB_REPO}.extraheader" "Authorization: Basic ${AUTH}"
+            
+            # remote 재설정
+            git remote remove gitlab 2>/dev/null || true
+            git remote add gitlab "$GITLAB_REPO"
+            
+            # ✅ 여기에도 헤더 붙이기 (중요!)
+            git "${GIT_ARGS[@]}" fetch gitlab --prune
+            
+            if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+              TAG="${GITHUB_REF_NAME}"
+              git "${GIT_ARGS[@]}" push gitlab "refs/tags/${TAG}:refs/tags/${TAG}" -o ci.skip --force-with-lease
+            else
+              BR="${GITHUB_REF_NAME}"
+              git "${GIT_ARGS[@]}" push gitlab "${BR}:${BR}" -o ci.skip --force-with-lease
+              git "${GIT_ARGS[@]}" push gitlab --tags -o ci.skip --force-with-lease
+            fi
+
