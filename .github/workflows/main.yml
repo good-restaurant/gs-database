@@ -13,14 +13,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 선택: 러너 IP를 Cloudflare에 임시 허용 (잡 시작 시 추가, 끝나면 제거)
-      # secrets 가 설정되어 있지 않으면 이 step은 건너뜁니다.
-      - name: Bypass Cloudflare for this job (optional)
-        if: ${{ secrets.CF_ZONE_ID && secrets.CF_API_TOKEN }}
-        uses: esetnik/bypass-cloudflare-for-github-action@v3
-        with:
-          cf_zone_id: ${{ secrets.CF_ZONE_ID }}
-          cf_api_token: ${{ secrets.CF_API_TOKEN }}
+      # # 선택: 러너 IP를 Cloudflare에 임시 허용 (잡 시작 시 추가, 끝나면 제거)
+      # # secrets 가 설정되어 있지 않으면 이 step은 건너뜁니다.
+      # - name: Bypass Cloudflare for this job (optional)
+      #   if: ${{ secrets.CF_ZONE_ID && secrets.CF_API_TOKEN }}
+      #   uses: esetnik/bypass-cloudflare-for-github-action@v3
+      #   with:
+      #     cf_zone_id: ${{ secrets.CF_ZONE_ID }}
+      #     cf_api_token: ${{ secrets.CF_API_TOKEN }}
 
       - name: Mirror to GitLab
         env:
