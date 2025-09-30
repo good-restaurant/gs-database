@@ -13,33 +13,35 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Mirror to GitLab via Cloudflare Access
+      # 러너 IP를 Cloudflare에 임시 허용 (잡 끝나면 자동 제거)
+      - name: Bypass Cloudflare for this job
+        uses: esetnik/bypass-cloudflare-for-github-action@v3
+        with:
+          cf_zone_id: ${{ secrets.CF_ZONE_ID }}
+          cf_api_token: ${{ secrets.CF_API_TOKEN }}
+
+      - name: Mirror to GitLab (Basic Auth)
         env:
           GITLAB_REPO: https://lab.i4624.info/good-restaurant/gs-database.git
           GITLAB_USERNAME: ${{ secrets.GITLAB_USERNAME }}
-          GITLAB_TOKEN: ${{ secrets.MIRRORING_PAT }}
-          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
-          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
-          GITHUB_REF_TYPE: ${{ github.ref_type }}   # branch | tag
-          GITHUB_REF_NAME: ${{ github.ref_name }}   # 브랜치명 또는 태그명
+          GITLAB_TOKEN: ${{ secrets.MIRRORING_PAT }}   # write_repository 포함
+          GITHUB_REF_TYPE: ${{ github.ref_type }}      # branch | tag
+          GITHUB_REF_NAME: ${{ github.ref_name }}      # 브랜치명 또는 태그명
         run: |
           set -euo pipefail
 
-          # 디버깅: 토큰 해시만 출력(값 유출 방지)
+          # 토큰 해시만 출력(값 유출 방지)
           printf '%s' "$GITLAB_TOKEN" | sha256sum
 
           BASE_URL="https://lab.i4624.info/"
-
-          # Basic Auth (username:PAT → base64, 줄바꿈 제거)
+          # username:PAT → base64 (줄바꿈 제거)
           AUTH="$(printf '%s:%s' "$GITLAB_USERNAME" "$GITLAB_TOKEN" | base64 | tr -d '\n')"
 
-          # -c 인자를 배열로 구성해 공백 보존
+          # -c 인자에 공백이 있어 배열로 안전하게 전달
           GIT_ARGS=()
           GIT_ARGS+=(-c "http.${BASE_URL}.extraheader=Authorization: Basic ${AUTH}")
-          GIT_ARGS+=(-c "http.${BASE_URL}.extraheader=CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}")
-          GIT_ARGS+=(-c "http.${BASE_URL}.extraheader=CF-Access-Client-Secret: ${CF_ACCESS_CLIENT_SECRET}")
 
-          # 연결 확인 (필요시 아래 주석 해제)
+          # 연결 확인(필요시 GIT_CURL_VERBOSE=1로 주석 해제)
           # GIT_CURL_VERBOSE=1 git "${GIT_ARGS[@]}" ls-remote "$GITLAB_REPO" || true
           git "${GIT_ARGS[@]}" ls-remote "$GITLAB_REPO" >/dev/null
 
@@ -47,15 +49,12 @@ jobs:
           git remote remove gitlab 2>/dev/null || true
           git remote add gitlab "$GITLAB_REPO"
 
-          # 이벤트 유형별로 push 대상 결정
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            # 태그 이벤트: 해당 태그만 푸시
-            TAG_NAME="${GITHUB_REF_NAME}"
-            git "${GIT_ARGS[@]}" push gitlab "refs/tags/${TAG_NAME}:refs/tags/${TAG_NAME}" -o ci.skip --force-with-lease
+            TAG="${GITHUB_REF_NAME}"
+            git "${GIT_ARGS[@]}" push gitlab "refs/tags/${TAG}:refs/tags/${TAG}" -o ci.skip --force-with-lease
           else
-            # 브랜치 이벤트: 해당 브랜치만 푸시
-            BRANCH="${GITHUB_REF_NAME}"
-            git "${GIT_ARGS[@]}" push gitlab "${BRANCH}:${BRANCH}" -o ci.skip --force-with-lease
-            # 필요 시 태그도 동시에 동기화
+            BR="${GITHUB_REF_NAME}"
+            git "${GIT_ARGS[@]}" push gitlab "${BR}:${BR}" -o ci.skip --force-with-lease
+            # 태그도 함께 동기화하려면 유지, 아니면 필요 시 제거
             git "${GIT_ARGS[@]}" push gitlab --tags -o ci.skip --force-with-lease
           fi
