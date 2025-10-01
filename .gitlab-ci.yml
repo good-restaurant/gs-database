@@ -8,8 +8,6 @@ services:
   - name: docker:dind
     alias: docker
     command: ["--tls=false"]
-    volumes:
-      - /cache/docker:/var/lib/docker   # 호스트에 캐시 유지
 
 variables:
   DOCKER_HOST: tcp://docker:2375
