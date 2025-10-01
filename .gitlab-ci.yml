@@ -70,9 +70,7 @@ test:
 
 
   # 선택: 간단한 공간 쿼리 테스트
-  - docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis \
-    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
-    "select ST_AsText(ST_Transform(ST_GeomFromText('POINT(126.9784 37.5665)',4326),3857));"
+  - docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select ST_AsText(ST_Transform(ST_GeomFromText('POINT(126.9784 37.5665)',4326),3857));"
 
   artifacts:
     when: always
