@@ -54,28 +54,26 @@ test:
       sleep 2
     done
 
-  # PostGIS 확장 체크
-  - | 
-    docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis
-    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select postgis_full_version();"
+  # psql 헬퍼
+  - docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select postgis_full_version();"
 
   # ✅ pgAdmin 웹 확인: 컨테이너 내부에서 재시도
   - |
     for i in $(seq 1 60); do
       if docker compose exec -T pgadmin python3 - <<'PY'
-    import urllib.request, sys, time
-    try:
-      with urllib.request.urlopen("http://127.0.0.1:80/", timeout=2) as r:
-        print("pgAdmin HTTP status:", r.status)
-        sys.exit(0 if r.status == 200 else 1)
-    except Exception as e:
-      print("pgAdmin check:", e)
-      sys.exit(2)
-      PY
-      then
-      echo "pgAdmin is reachable"; break
-      fi
-      sleep 2
+      import urllib.request, sys, time
+      try:
+        with urllib.request.urlopen("http://127.0.0.1:80/", timeout=2) as r:
+          print("pgAdmin HTTP status:", r.status)
+          sys.exit(0 if r.status == 200 else 1)
+      except Exception as e:
+        print("pgAdmin check:", e)
+        sys.exit(2)
+        PY
+        then
+        echo "pgAdmin is reachable"; break
+        fi
+        sleep 2
 
 
   # 선택: 간단한 공간 쿼리 테스트
