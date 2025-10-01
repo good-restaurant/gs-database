@@ -42,10 +42,9 @@ compose-check:
 test:
   stage: test
   script:
-    # 서비스 기동
     - docker compose up -d
 
-    # DB 기동 대기
+    # Postgres 준비 대기
     - |
       for i in $(seq 1 60); do
         if docker exec coredb_postgis pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
@@ -54,25 +53,23 @@ test:
         sleep 2
       done
 
-    # PostGIS 확장 체크
-    - docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select postgis_full_version();"
+    # PostGIS 확장 출력
+    - docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis \
+      psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select postgis_full_version();"
 
-    # pgAdmin 웹 확인: 컨테이너 내부에서 HTTP 요청 (curl/wget 불필요)
+    # ✅ pgAdmin Healthy 대기
     - |
-      docker compose exec -T pgadmin python3 - <<'PY'
-      import urllib.request, sys
-      try:
-          with urllib.request.urlopen("http://localhost:80/") as r:
-              # 200 OK 정도만 확인
-              print("pgAdmin HTTP status:", r.status)
-              sys.exit(0 if r.status == 200 else 1)
-      except Exception as e:
-          print("pgAdmin health check failed:", e)
-          sys.exit(1)
-      PY
+      for i in $(seq 1 120); do
+        STATUS="$(docker inspect -f '{{.State.Health.Status}}' grdb_pgadmin 2>/dev/null || echo 'starting')"
+        echo "pgAdmin health: $STATUS"
+        if [ "$STATUS" = "healthy" ]; then break; fi
+        sleep 2
+      done
+      [ "$STATUS" = "healthy" ] || { echo "pgAdmin not healthy in time"; exit 1; }
 
-    # 선택: 간단한 공간 쿼리 테스트
-    - docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select ST_AsText(ST_Transform(ST_GeomFromText('POINT(126.9784 37.5665)',4326),3857));"
+    # 선택: 간단 공간 쿼리
+    - docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis \
+      psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select ST_AsText(ST_Transform(ST_GeomFromText('POINT(126.9784 37.5665)',4326),3857));"
 
   artifacts:
     when: always
