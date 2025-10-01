@@ -55,7 +55,8 @@ test:
     done
 
   # PostGIS 확장 체크
-  - docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis \
+  - | 
+    docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis
     psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select postgis_full_version();"
 
   # ✅ pgAdmin 웹 확인: 컨테이너 내부에서 재시도
