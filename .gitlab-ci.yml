@@ -8,6 +8,8 @@ services:
   - name: docker:dind
     alias: docker
     command: ["--tls=false"]
+    volumes:
+      - /cache/docker:/var/lib/docker   # 호스트에 캐시 유지
 
 variables:
   DOCKER_HOST: tcp://docker:2375
@@ -37,7 +39,7 @@ compose-check:
         exit 1
       fi
     - echo "잔여 컨테이너 정리"
-    - docker compose down -v || true
+    - docker compose down || true
 
 test:
   stage: test
@@ -82,9 +84,16 @@ test:
 
 deploy:
   stage: deploy
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
+  variables:
+    DOCKER_HOST: "unix:///var/run/docker.sock"
+    DOCKER_TLS_CERTDIR: ""      # ← 덮어쓰기
+  services: []                  # DinD 미사용
+  before_script:
+    - docker info               # 호스트 데몬 접근 확인(빠른 페일)
   script:
     - docker compose pull
     - docker compose up -d
     - docker compose ps
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
