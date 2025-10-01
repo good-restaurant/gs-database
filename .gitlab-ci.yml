@@ -28,6 +28,10 @@ before_script:
 # 필수 변수 점검 및 정리
 compose-check:
   stage: build
+  services:
+    - name: docker:dind
+      alias: docker
+      command: [ "--tls=false" ]
   script:
     - echo "CI/CD 변수 확인"
     - |
@@ -41,6 +45,10 @@ compose-check:
 
 test:
   stage: test
+  services:
+    - name: docker:dind
+      alias: docker
+      command: [ "--tls=false" ]
   script:
   # 서비스 기동
   - docker compose up -d
