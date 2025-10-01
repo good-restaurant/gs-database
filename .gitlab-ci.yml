@@ -1,9 +1,9 @@
 stages: [build, test, deploy]
 
 # DinD 설정
-image: docker:24
+image: docker:latest
 services:
-  - name: docker:24-dind
+  - name: docker:dind
     command: ["--tls=false"]
 
 variables:
