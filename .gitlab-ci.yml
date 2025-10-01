@@ -32,6 +32,9 @@ compose-check:
     - name: docker:dind
       alias: docker
       command: [ "--tls=false" ]
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
   script:
     - echo "CI/CD 변수 확인"
     - |
@@ -49,6 +52,9 @@ test:
     - name: docker:dind
       alias: docker
       command: [ "--tls=false" ]
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
   script:
   # 서비스 기동
   - docker compose up -d
