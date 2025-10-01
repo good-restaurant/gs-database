@@ -8,6 +8,8 @@ services:
   - name: docker:dind
     alias: docker
     command: ["--tls=false"]
+    volumes:
+      - /cache/docker:/var/lib/docker   # 호스트에 캐시 유지
 
 variables:
   DOCKER_HOST: tcp://docker:2375
@@ -37,7 +39,7 @@ compose-check:
         exit 1
       fi
     - echo "잔여 컨테이너 정리"
-    - docker compose down -v || true
+    - docker compose down || true
 
 test:
   stage: test
