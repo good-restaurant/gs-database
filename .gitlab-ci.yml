@@ -10,6 +10,7 @@ variables:
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
 
+
 # 공통: DinD 준비 대기
 before_script:
   - |
@@ -23,6 +24,14 @@ before_script:
 # 필수 변수 점검 및 정리
 compose-check:
   stage: build
+  services:
+  - name: docker:dind
+    alias: docker
+    command: ["--tls=false"]
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+
   script:
     - echo "CI/CD 변수 확인"
     - |
@@ -36,6 +45,13 @@ compose-check:
 
 test:
   stage: test
+  services:
+  - name: docker:dind
+    alias: docker
+    command: ["--tls=false"]
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
   script:
   # 서비스 기동
   - docker compose up -d
