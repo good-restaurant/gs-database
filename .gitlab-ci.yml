@@ -38,8 +38,10 @@ test:
         fi; sleep 2
       done
     # PostGIS 확장 체크
-    - docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis \
+    - |
+      docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis \
       psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select postgis_full_version();"
+
     # pgAdmin 웹 확인
     - curl -sSf http://localhost:5050 >/dev/null
     # 선택: 간단한 공간 쿼리 테스트
