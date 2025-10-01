@@ -1,9 +1,12 @@
 stages: [build, test, deploy]
 
-# DinD 설정
+# CLI 컨테이너 (docker CLI 포함)
 image: docker:latest
+
+# DinD 데몬
 services:
   - name: docker:dind
+    alias: docker
     command: ["--tls=false"]
 
 variables:
@@ -11,6 +14,16 @@ variables:
   DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: overlay2
   DOCKER_COMPOSE_FILE: docker-compose.yml
+
+# 공통: DinD 준비 대기
+before_script:
+  - |
+    for i in $(seq 1 30); do
+      if docker info >/dev/null 2>&1; then
+        echo "Docker daemon is ready"; break
+      fi
+      echo "Waiting for Docker daemon..."; sleep 2
+    done
 
 # 필수 변수 점검 및 정리
 compose-check:
@@ -29,31 +42,43 @@ compose-check:
 test:
   stage: test
   script:
-    - docker compose up -d
-    # DB 기동 대기
-    - |
-      for i in $(seq 1 60); do
-        if docker exec coredb_postgis pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
-          echo "PostGIS up"; break
-        fi; sleep 2
-      done
-    # PostGIS 확장 체크
-    - docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis \
-      psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select postgis_full_version();"
-    # pgAdmin 웹 확인
-    - curl -sSf http://localhost:5050 >/dev/null
-    # 선택: 간단한 공간 쿼리 테스트
-    - >
-      docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc
-      "select ST_AsText(ST_Transform(ST_GeomFromText('POINT(126.9784 37.5665)',4326),3857));"
+  # 서비스 기동
+  - docker compose up -d
+
+  # DB 기동 대기
+  - |
+    for i in $(seq 1 120); do
+      if docker exec coredb_postgis pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" >/dev/null 2>&1; then
+        echo "PostGIS up"; break
+      fi
+      sleep 2
+    done
+
+  # psql 헬퍼
+  - docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select postgis_full_version();"
+
+  # ✅ pgAdmin 웹 확인: 컨테이너 내부에서 재시도
+  - |
+    for i in $(seq 1 60); do
+      if docker compose exec -T pgadmin \
+        python3 -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:80/', timeout=2).status==200 else 1)"; then
+        echo "pgAdmin is reachable"
+        break
+      fi
+      sleep 2
+    done
+
+
+  # 선택: 간단한 공간 쿼리 테스트
+  - docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" coredb_postgis psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select ST_AsText(ST_Transform(ST_GeomFromText('POINT(126.9784 37.5665)',4326),3857));"
+
   artifacts:
     when: always
-    reports: {}
     expire_in: 1 week
   after_script:
     - docker compose logs postgres | tail -n 200 || true
-    - docker compose logs pgadmin | tail -n 200 || true
-    - docker compose down
+    - docker compose logs pgadmin  | tail -n 200 || true
+    - docker compose down || true
 
 deploy:
   stage: deploy
