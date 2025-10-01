@@ -60,20 +60,13 @@ test:
   # ✅ pgAdmin 웹 확인: 컨테이너 내부에서 재시도
   - |
     for i in $(seq 1 60); do
-      if docker compose exec -T pgadmin python3 - <<'PY'
-      import urllib.request, sys, time
-      try:
-        with urllib.request.urlopen("http://127.0.0.1:80/", timeout=2) as r:
-          print("pgAdmin HTTP status:", r.status)
-          sys.exit(0 if r.status == 200 else 1)
-      except Exception as e:
-        print("pgAdmin check:", e)
-        sys.exit(2)
-        PY
-        then
-        echo "pgAdmin is reachable"; break
-        fi
-        sleep 2
+      if docker compose exec -T pgadmin \
+        python3 -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:80/', timeout=2).status==200 else 1)"; then
+        echo "pgAdmin is reachable"
+        break
+      fi
+      sleep 2
+    done
 
 
   # 선택: 간단한 공간 쿼리 테스트
