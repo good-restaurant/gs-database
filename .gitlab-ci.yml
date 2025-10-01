@@ -2,6 +2,14 @@ stages: [build, test, deploy]
 
 # CLI 컨테이너 (docker CLI 포함)
 image: docker:latest
+services:
+  - name: docker:dind
+    alias: docker
+    command: ["--tls=false"]
+variables:
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+
 
 # 공통: DinD 준비 대기
 before_script:
@@ -85,9 +93,10 @@ test:
 
 deploy:
   stage: deploy
+  services: []  # DinD 끔
   variables:
-    DOCKER_HOST: "unix:///var/run/docker.sock"
-    DOCKER_TLS_CERTDIR: ""      # ← 덮어쓰기
+    DOCKER_HOST: "unix:///var/run/host_docker.sock"  # 별도로 정의한 host 소켓
+    DOCKER_TLS_CERTDIR: ""
   before_script:
     - docker info               # 호스트 데몬 접근 확인(빠른 페일)
   script:
