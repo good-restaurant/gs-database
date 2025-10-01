@@ -3,16 +3,6 @@ stages: [build, test, deploy]
 # CLI 컨테이너 (docker CLI 포함)
 image: docker:latest
 
-default:
-  image: docker:latest
-  services:
-    - name: docker:dind
-      alias: docker
-      command: ["--tls=false"]
-  variables:
-    DOCKER_HOST: tcp://docker:2375
-    DOCKER_TLS_CERTDIR: ""
-
 # 공통: DinD 준비 대기
 before_script:
   - |
@@ -26,6 +16,14 @@ before_script:
 # 필수 변수 점검 및 정리
 compose-check:
   stage: build
+  services:
+  - name: docker:dind
+    alias: docker
+    command: ["--tls=false"]
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+
   script:
     - echo "CI/CD 변수 확인"
     - |
@@ -39,6 +37,13 @@ compose-check:
 
 test:
   stage: test
+  services:
+  - name: docker:dind
+    alias: docker
+    command: ["--tls=false"]
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
   script:
   # 서비스 기동
   - docker compose up -d
@@ -83,7 +88,6 @@ deploy:
   variables:
     DOCKER_HOST: "unix:///var/run/docker.sock"
     DOCKER_TLS_CERTDIR: ""      # ← 덮어쓰기
-  services: []                  # DinD 미사용
   before_script:
     - docker info               # 호스트 데몬 접근 확인(빠른 페일)
   script:
