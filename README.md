@@ -20,13 +20,17 @@ postgresql database CI/CD for runner
 
 DinD 모드의 Runner에서 유효합니다.
 
-Gitlab Variable 에서 아래 4개에 대한 Variable을 등록해주세요.
+Gitlab Variable 에서 아래 5개에 대한 Variable을 등록해주세요.
 
 - POSTGRES_USER
 - POSTGRES_PASSWORD 
 - POSTGRES_DB 
 - PGADMIN_ROOT (PGAdmin의 SuperUser 계정)
 - PGADMIN_PW
+
+최신 버전의 pgadmin 에서 passkey를 통한 로그인 설정이 가능합니다.
+
+패스키 사용시 2개 이상의 단말기를 등록해서 사용하는 것을 권장합니다.
 
 ## github action
 
